@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { extname } from 'node:path';
 import { DataSource } from 'typeorm';
 import { BookingSeat } from './bookings/entities/booking-seat.entity';
 import { Booking } from './bookings/entities/booking.entity';
@@ -24,6 +25,8 @@ export default new DataSource({
   username: env.DB_USER,
   password: env.DB_PASSWORD,
   database: env.DB_NAME,
+  // The CLI has no autoLoadEntities, so the entities are listed by hand.
   entities: [Film, Hall, Showing, Booking, BookingSeat],
-  migrations: [`${__dirname}/migrations/*{.ts,.js}`],
+  // .ts files when run through ts-node, .js files when run from dist.
+  migrations: [`${__dirname}/migrations/*${extname(__filename)}`],
 });
