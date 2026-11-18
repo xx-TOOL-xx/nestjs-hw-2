@@ -9,8 +9,9 @@ import { isPostgresError, PostgresErrorCode } from '../common/postgres-error';
 import { FilmsService } from '../films/films.service';
 import { HallsService } from '../halls/halls.service';
 import { CreateShowingDto } from './dto/create-showing.dto';
+import { PaginatedShowings } from './dto/paginated-showings.dto';
 import { ShowingView } from './dto/showing-view.dto';
-import { ShowingsQueryDto } from './dto/showings-query.dto';
+import { ShowingsQueryDto, SortOrder } from './dto/showings-query.dto';
 import { Showing } from './entities/showing.entity';
 
 @Injectable()
@@ -49,8 +50,15 @@ export class ShowingsService {
     }
   }
 
-  /** Filtering and sorting are done by the database. */
-  async findAll(query: ShowingsQueryDto): Promise<ShowingView[]> {
+  /**
+   * Filtering, sorting and paging are all done by the database: the query
+   * returns one page of rows and the number of rows that match the filters.
+   */
+  async findAll(query: ShowingsQueryDto): Promise<PaginatedShowings> {
+    const { page, limit } = query;
+    // A page far beyond the data is still a valid request with no items;
+    // the cap keeps the offset within what PostgreSQL accepts.
+    const offset = Math.min((page - 1) * limit, Number.MAX_SAFE_INTEGER);
     const builder = this.showingsRepository
       .createQueryBuilder('showing')
       .innerJoinAndSelect('showing.film', 'film')
@@ -69,13 +77,23 @@ export class ShowingsService {
         .andWhere('showing.startsAt < :nextDayStart', { nextDayStart });
     }
 
-    const showings = await builder
-      .orderBy('showing.startsAt', 'ASC')
+    const [showings, total] = await builder
+      .orderBy(
+        'showing.startsAt',
+        query.sort === SortOrder.Desc ? 'DESC' : 'ASC',
+      )
       // Showings that start at the same moment keep a stable order.
       .addOrderBy('showing.id', 'ASC')
-      .getMany();
+      .skip(offset)
+      .take(limit)
+      .getManyAndCount();
 
-    return showings.map((showing) => this.toView(showing));
+    return {
+      items: showings.map((showing) => this.toView(showing)),
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: string): Promise<Showing> {

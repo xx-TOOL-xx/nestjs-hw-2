@@ -17,6 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { ErrorResponse } from '../common/dto/error-response.dto';
 import { CreateShowingDto } from './dto/create-showing.dto';
+import { PaginatedShowings } from './dto/paginated-showings.dto';
 import { ShowingView } from './dto/showing-view.dto';
 import { ShowingsQueryDto } from './dto/showings-query.dto';
 import { Showing } from './entities/showing.entity';
@@ -41,14 +42,17 @@ export class ShowingsController {
 
   @Get()
   @ApiOperation({
-    summary: 'List showings ordered by start time, optionally filtered',
+    summary: 'List showings page by page',
+    description:
+      'Filters by film and by day, orders by start time and returns one page. Every query parameter is optional.',
   })
-  @ApiOkResponse({ type: [ShowingView] })
+  @ApiOkResponse({ type: PaginatedShowings })
   @ApiBadRequestResponse({
     type: ErrorResponse,
-    description: 'filmId is not a UUID or date is not in YYYY-MM-DD format',
+    description:
+      'page or limit is not an integer or is out of range, sort is neither asc nor desc, date is not in YYYY-MM-DD format, or filmId is not a UUID',
   })
-  findAll(@Query() query: ShowingsQueryDto): Promise<ShowingView[]> {
+  findAll(@Query() query: ShowingsQueryDto): Promise<PaginatedShowings> {
     return this.showingsService.findAll(query);
   }
 
