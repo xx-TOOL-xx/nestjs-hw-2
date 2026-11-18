@@ -1,6 +1,16 @@
 # Cinema Booking API - run the requests from top to bottom.
 # Works with the REST Client extension for VS Code.
-# Ids are taken from earlier responses, dates are generated relative to now.
+#
+# Before the first request: start PostgreSQL, apply the migrations and start
+# the application (see README.md).
+#
+# Ids are taken from earlier responses and dates are generated relative to
+# now. Hall names must be unique, so they get a timestamp: the file can be
+# run again on the same database.
+#
+# Every error has the same body:
+#   { "statusCode": 404, "message": "...", "error": "Not Found",
+#     "path": "/films/...", "timestamp": "..." }
 
 @baseUrl = http://localhost:3000
 @unknownId = 00000000-0000-4000-8000-000000000000
@@ -85,13 +95,13 @@ Content-Type: application/json
 
 ############################ HALLS ############################
 
-### Create a hall -> 201
+### Create a hall of 3 rows by 5 seats -> 201
 # @name createHall
 POST {{baseUrl}}/halls
 Content-Type: application/json
 
 {
-  "name": "Red hall",
+  "name": "Red hall {{$datetime iso8601}}",
   "rows": 3,
   "seatsPerRow": 5
 }
@@ -99,11 +109,12 @@ Content-Type: application/json
 ### Create a second hall that no showing will use -> 201
 # @name createSpareHall
 @hallId = {{createHall.response.body.id}}
+@hallName = {{createHall.response.body.name}}
 POST {{baseUrl}}/halls
 Content-Type: application/json
 
 {
-  "name": "Spare hall",
+  "name": "Spare hall {{$datetime iso8601}}",
   "rows": 2,
   "seatsPerRow": 2
 }
@@ -143,7 +154,7 @@ POST {{baseUrl}}/halls
 Content-Type: application/json
 
 {
-  "name": "Red hall",
+  "name": "{{hallName}}",
   "rows": 10,
   "seatsPerRow": 10
 }
@@ -171,8 +182,30 @@ Content-Type: application/json
   "price": 12500
 }
 
-### Create a showing for a film that does not exist -> 400
+### Create a showing that starts in two days -> 201
 @showingId = {{createShowing.response.body.id}}
+POST {{baseUrl}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "{{filmId}}",
+  "hallId": "{{hallId}}",
+  "startsAt": "{{$datetime iso8601 2 d}}",
+  "price": 9000
+}
+
+### Create a showing that starts in three days -> 201
+POST {{baseUrl}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "{{filmId}}",
+  "hallId": "{{hallId}}",
+  "startsAt": "{{$datetime iso8601 3 d}}",
+  "price": 15000
+}
+
+### Create a showing for a film that does not exist -> 400
 POST {{baseUrl}}/showings
 Content-Type: application/json
 
@@ -227,8 +260,17 @@ Content-Type: application/json
   "price": 99.5
 }
 
-### List all showings, ordered by start time -> 200
+### List showings: page 1, 20 per page, earliest first by default -> 200
 GET {{baseUrl}}/showings
+
+### List the first page of two showings -> 200
+GET {{baseUrl}}/showings?page=1&limit=2
+
+### List the second page of two showings -> 200
+GET {{baseUrl}}/showings?page=2&limit=2
+
+### List showings from the latest to the earliest -> 200
+GET {{baseUrl}}/showings?sort=desc
 
 ### List the showings of one film -> 200
 GET {{baseUrl}}/showings?filmId={{filmId}}
@@ -236,11 +278,35 @@ GET {{baseUrl}}/showings?filmId={{filmId}}
 ### List the showings that start tomorrow -> 200
 GET {{baseUrl}}/showings?date={{$datetime 'YYYY-MM-DD' 1 d}}
 
-### Combine both filters -> 200
-GET {{baseUrl}}/showings?filmId={{filmId}}&date={{$datetime 'YYYY-MM-DD' 1 d}}
+### Combine the filters with paging and sorting -> 200
+GET {{baseUrl}}/showings?filmId={{filmId}}&date={{$datetime 'YYYY-MM-DD' 1 d}}&page=1&limit=10&sort=desc
+
+### List showings with a page below 1 -> 400
+GET {{baseUrl}}/showings?page=0
+
+### List showings with a page that is not an integer -> 400
+GET {{baseUrl}}/showings?page=1.5
+
+### List showings with a page that is not a number -> 400
+GET {{baseUrl}}/showings?page=first
+
+### List showings with a limit below 1 -> 400
+GET {{baseUrl}}/showings?limit=0
+
+### List showings with a limit above 100 -> 400
+GET {{baseUrl}}/showings?limit=101
+
+### List showings with a limit that is not an integer -> 400
+GET {{baseUrl}}/showings?limit=ten
+
+### List showings with a sort other than asc or desc -> 400
+GET {{baseUrl}}/showings?sort=newest
 
 ### List showings with a date in a wrong format -> 400
 GET {{baseUrl}}/showings?date=01-05-2030
+
+### List showings with a filmId that is not a UUID -> 400
+GET {{baseUrl}}/showings?filmId=dune
 
 ### Get one showing with the film title and the hall name -> 200
 GET {{baseUrl}}/showings/{{showingId}}
@@ -256,10 +322,10 @@ GET {{baseUrl}}/showings/{{unknownId}}/seats
 
 ########################## BOOKINGS ###########################
 
-### List all bookings, still empty -> 200
+### List all bookings -> 200
 GET {{baseUrl}}/bookings
 
-### Book two seats -> 201, totalPrice 25000
+### Book two seats in one transaction -> 201, totalPrice 25000
 # @name createBooking
 POST {{baseUrl}}/showings/{{showingId}}/bookings
 Content-Type: application/json
@@ -331,21 +397,22 @@ Content-Type: application/json
   "seats": [{ "row": 0, "seat": 1.5 }]
 }
 
-### Book a free seat together with a taken one -> 409, nothing is booked
+### Book two free seats together with a taken one -> 409, the transaction is rolled back
 POST {{baseUrl}}/showings/{{showingId}}/bookings
 Content-Type: application/json
 
 {
   "seats": [
-    { "row": 3, "seat": 5 },
-    { "row": 1, "seat": 2 }
+    { "row": 1, "seat": 2 },
+    { "row": 1, "seat": 3 },
+    { "row": 3, "seat": 5 }
   ]
 }
 
 ### List the seats again: only row 1 seats 1 and 2 are booked -> 200
 GET {{baseUrl}}/showings/{{showingId}}/seats
 
-### List the bookings of the showing -> 200
+### List the bookings of the showing: still the one booking -> 200
 GET {{baseUrl}}/showings/{{showingId}}/bookings
 
 ### List the bookings of a showing that does not exist -> 404
@@ -374,7 +441,7 @@ DELETE {{baseUrl}}/halls/{{spareHallId}}
 ### Delete a hall that does not exist -> 404
 DELETE {{baseUrl}}/halls/{{unknownId}}
 
-### Cancel the booking -> 204
+### Cancel the booking: its seats are deleted with it -> 204
 DELETE {{baseUrl}}/bookings/{{bookingId}}
 
 ### Cancel a booking that does not exist -> 404
