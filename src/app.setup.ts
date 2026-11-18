@@ -1,5 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 /** Shared by `main.ts` and the e2e tests so both run the same pipeline. */
 export function setupApp(app: INestApplication): void {
@@ -11,6 +12,8 @@ export function setupApp(app: INestApplication): void {
       transform: true,
     }),
   );
+  // One error structure for the whole API.
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   const config = new DocumentBuilder()
     .setTitle('Cinema Booking API')

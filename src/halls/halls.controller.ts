@@ -19,6 +19,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { ErrorResponse } from '../common/dto/error-response.dto';
 import { CreateHallDto } from './dto/create-hall.dto';
 import { Hall, HallWithSeats } from './entities/hall.entity';
 import { HallsService } from './halls.service';
@@ -32,10 +33,14 @@ export class HallsController {
   @ApiOperation({ summary: 'Create a hall' })
   @ApiCreatedResponse({ type: Hall })
   @ApiBadRequestResponse({
+    type: ErrorResponse,
     description:
       'A field is missing, has a wrong type, or a number is not a positive integer',
   })
-  @ApiConflictResponse({ description: 'A hall with this name already exists' })
+  @ApiConflictResponse({
+    type: ErrorResponse,
+    description: 'A hall with this name already exists',
+  })
   create(@Body() dto: CreateHallDto): Hall {
     return this.hallsService.create(dto);
   }
@@ -50,8 +55,11 @@ export class HallsController {
   @Get(':id')
   @ApiOperation({ summary: 'Get one hall together with its seats' })
   @ApiOkResponse({ type: HallWithSeats })
-  @ApiBadRequestResponse({ description: 'The id is not a UUID' })
-  @ApiNotFoundResponse({ description: 'Hall not found' })
+  @ApiBadRequestResponse({
+    type: ErrorResponse,
+    description: 'The id is not a UUID',
+  })
+  @ApiNotFoundResponse({ type: ErrorResponse, description: 'Hall not found' })
   findOne(@Param('id', ParseUUIDPipe) id: string): HallWithSeats {
     return this.hallsService.findOneWithSeats(id);
   }
@@ -60,9 +68,15 @@ export class HallsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a hall' })
   @ApiNoContentResponse({ description: 'Hall deleted' })
-  @ApiBadRequestResponse({ description: 'The id is not a UUID' })
-  @ApiNotFoundResponse({ description: 'Hall not found' })
-  @ApiConflictResponse({ description: 'At least one showing uses the hall' })
+  @ApiBadRequestResponse({
+    type: ErrorResponse,
+    description: 'The id is not a UUID',
+  })
+  @ApiNotFoundResponse({ type: ErrorResponse, description: 'Hall not found' })
+  @ApiConflictResponse({
+    type: ErrorResponse,
+    description: 'At least one showing uses the hall',
+  })
   remove(@Param('id', ParseUUIDPipe) id: string): void {
     this.hallsService.remove(id);
   }

@@ -15,6 +15,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { ErrorResponse } from '../common/dto/error-response.dto';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { SeatStatus } from './dto/seat-status.dto';
@@ -29,8 +30,14 @@ export class ShowingBookingsController {
   @Get('seats')
   @ApiOperation({ summary: 'List the seats of a showing with their status' })
   @ApiOkResponse({ type: [SeatStatus] })
-  @ApiBadRequestResponse({ description: 'The id is not a UUID' })
-  @ApiNotFoundResponse({ description: 'Showing not found' })
+  @ApiBadRequestResponse({
+    type: ErrorResponse,
+    description: 'The id is not a UUID',
+  })
+  @ApiNotFoundResponse({
+    type: ErrorResponse,
+    description: 'Showing not found',
+  })
   seatMap(@Param('id', ParseUUIDPipe) id: string): SeatStatus[] {
     return this.bookingsService.seatMap(id);
   }
@@ -39,11 +46,16 @@ export class ShowingBookingsController {
   @ApiOperation({ summary: 'Book seats on a showing' })
   @ApiCreatedResponse({ type: Booking })
   @ApiBadRequestResponse({
+    type: ErrorResponse,
     description:
       'seats is empty, an element lacks row or seat, a seat is listed twice, or a seat does not exist in the hall',
   })
-  @ApiNotFoundResponse({ description: 'Showing not found' })
+  @ApiNotFoundResponse({
+    type: ErrorResponse,
+    description: 'Showing not found',
+  })
   @ApiConflictResponse({
+    type: ErrorResponse,
     description: 'At least one seat is already booked; nothing is booked',
   })
   create(
@@ -56,8 +68,14 @@ export class ShowingBookingsController {
   @Get('bookings')
   @ApiOperation({ summary: 'List the bookings of a showing' })
   @ApiOkResponse({ type: [Booking] })
-  @ApiBadRequestResponse({ description: 'The id is not a UUID' })
-  @ApiNotFoundResponse({ description: 'Showing not found' })
+  @ApiBadRequestResponse({
+    type: ErrorResponse,
+    description: 'The id is not a UUID',
+  })
+  @ApiNotFoundResponse({
+    type: ErrorResponse,
+    description: 'Showing not found',
+  })
   findByShowing(@Param('id', ParseUUIDPipe) id: string): Booking[] {
     return this.bookingsService.findByShowing(id);
   }

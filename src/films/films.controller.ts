@@ -20,6 +20,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { ErrorResponse } from '../common/dto/error-response.dto';
 import { CreateFilmDto } from './dto/create-film.dto';
 import { UpdateFilmDto } from './dto/update-film.dto';
 import { Film } from './entities/film.entity';
@@ -34,6 +35,7 @@ export class FilmsController {
   @ApiOperation({ summary: 'Create a film' })
   @ApiCreatedResponse({ type: Film })
   @ApiBadRequestResponse({
+    type: ErrorResponse,
     description: 'A field is missing or has a wrong type',
   })
   create(@Body() dto: CreateFilmDto): Film {
@@ -50,8 +52,11 @@ export class FilmsController {
   @Get(':id')
   @ApiOperation({ summary: 'Get one film' })
   @ApiOkResponse({ type: Film })
-  @ApiBadRequestResponse({ description: 'The id is not a UUID' })
-  @ApiNotFoundResponse({ description: 'Film not found' })
+  @ApiBadRequestResponse({
+    type: ErrorResponse,
+    description: 'The id is not a UUID',
+  })
+  @ApiNotFoundResponse({ type: ErrorResponse, description: 'Film not found' })
   findOne(@Param('id', ParseUUIDPipe) id: string): Film {
     return this.filmsService.findOne(id);
   }
@@ -59,8 +64,11 @@ export class FilmsController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update any subset of film fields' })
   @ApiOkResponse({ type: Film })
-  @ApiBadRequestResponse({ description: 'A field has a wrong type' })
-  @ApiNotFoundResponse({ description: 'Film not found' })
+  @ApiBadRequestResponse({
+    type: ErrorResponse,
+    description: 'A field has a wrong type',
+  })
+  @ApiNotFoundResponse({ type: ErrorResponse, description: 'Film not found' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateFilmDto,
@@ -72,9 +80,15 @@ export class FilmsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a film' })
   @ApiNoContentResponse({ description: 'Film deleted' })
-  @ApiBadRequestResponse({ description: 'The id is not a UUID' })
-  @ApiNotFoundResponse({ description: 'Film not found' })
-  @ApiConflictResponse({ description: 'At least one showing uses the film' })
+  @ApiBadRequestResponse({
+    type: ErrorResponse,
+    description: 'The id is not a UUID',
+  })
+  @ApiNotFoundResponse({ type: ErrorResponse, description: 'Film not found' })
+  @ApiConflictResponse({
+    type: ErrorResponse,
+    description: 'At least one showing uses the film',
+  })
   remove(@Param('id', ParseUUIDPipe) id: string): void {
     this.filmsService.remove(id);
   }

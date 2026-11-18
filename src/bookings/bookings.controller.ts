@@ -15,6 +15,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { ErrorResponse } from '../common/dto/error-response.dto';
 import { BookingsService } from './bookings.service';
 import { Booking } from './entities/booking.entity';
 
@@ -34,8 +35,14 @@ export class BookingsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Cancel a booking and free its seats' })
   @ApiNoContentResponse({ description: 'Booking cancelled' })
-  @ApiBadRequestResponse({ description: 'The id is not a UUID' })
-  @ApiNotFoundResponse({ description: 'Booking not found' })
+  @ApiBadRequestResponse({
+    type: ErrorResponse,
+    description: 'The id is not a UUID',
+  })
+  @ApiNotFoundResponse({
+    type: ErrorResponse,
+    description: 'Booking not found',
+  })
   remove(@Param('id', ParseUUIDPipe) id: string): void {
     this.bookingsService.remove(id);
   }
