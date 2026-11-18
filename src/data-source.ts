@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
+import { BookingSeat } from './bookings/entities/booking-seat.entity';
+import { Booking } from './bookings/entities/booking.entity';
 import { validate } from './config/environment-variables';
 import { Film } from './films/entities/film.entity';
 import { Hall } from './halls/entities/hall.entity';
@@ -22,6 +24,6 @@ export default new DataSource({
   username: env.DB_USER,
   password: env.DB_PASSWORD,
   database: env.DB_NAME,
-  entities: [Film, Hall, Showing],
+  entities: [Film, Hall, Showing, Booking, BookingSeat],
   migrations: [`${__dirname}/migrations/*{.ts,.js}`],
 });

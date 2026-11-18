@@ -4,8 +4,10 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Booking } from '../../bookings/entities/booking.entity';
 import { Film } from '../../films/entities/film.entity';
 import { Hall } from '../../halls/entities/hall.entity';
 
@@ -58,4 +60,8 @@ export class Showing {
   })
   @JoinColumn({ name: 'hall_id' })
   hall?: Hall;
+
+  /** A showing has many bookings; the foreign key is `bookings.showing_id`. */
+  @OneToMany(() => Booking, (booking) => booking.showing)
+  bookings?: Booking[];
 }

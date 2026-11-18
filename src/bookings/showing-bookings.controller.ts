@@ -17,9 +17,9 @@ import {
 } from '@nestjs/swagger';
 import { ErrorResponse } from '../common/dto/error-response.dto';
 import { BookingsService } from './bookings.service';
+import { BookingView } from './dto/booking-view.dto';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { SeatStatus } from './dto/seat-status.dto';
-import { Booking } from './entities/booking.entity';
 
 /** Booking routes that are addressed through the showing they belong to. */
 @ApiTags('bookings')
@@ -44,7 +44,7 @@ export class ShowingBookingsController {
 
   @Post('bookings')
   @ApiOperation({ summary: 'Book seats on a showing' })
-  @ApiCreatedResponse({ type: Booking })
+  @ApiCreatedResponse({ type: BookingView })
   @ApiBadRequestResponse({
     type: ErrorResponse,
     description:
@@ -61,13 +61,13 @@ export class ShowingBookingsController {
   create(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateBookingDto,
-  ): Promise<Booking> {
+  ): Promise<BookingView> {
     return this.bookingsService.create(id, dto);
   }
 
   @Get('bookings')
   @ApiOperation({ summary: 'List the bookings of a showing' })
-  @ApiOkResponse({ type: [Booking] })
+  @ApiOkResponse({ type: [BookingView] })
   @ApiBadRequestResponse({
     type: ErrorResponse,
     description: 'The id is not a UUID',
@@ -76,7 +76,9 @@ export class ShowingBookingsController {
     type: ErrorResponse,
     description: 'Showing not found',
   })
-  findByShowing(@Param('id', ParseUUIDPipe) id: string): Promise<Booking[]> {
+  findByShowing(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<BookingView[]> {
     return this.bookingsService.findByShowing(id);
   }
 }

@@ -17,7 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { ErrorResponse } from '../common/dto/error-response.dto';
 import { BookingsService } from './bookings.service';
-import { Booking } from './entities/booking.entity';
+import { BookingView } from './dto/booking-view.dto';
 
 @ApiTags('bookings')
 @Controller('bookings')
@@ -26,8 +26,8 @@ export class BookingsController {
 
   @Get()
   @ApiOperation({ summary: 'List all bookings of the service' })
-  @ApiOkResponse({ type: [Booking] })
-  findAll(): Booking[] {
+  @ApiOkResponse({ type: [BookingView] })
+  findAll(): Promise<BookingView[]> {
     return this.bookingsService.findAll();
   }
 
@@ -43,7 +43,7 @@ export class BookingsController {
     type: ErrorResponse,
     description: 'Booking not found',
   })
-  remove(@Param('id', ParseUUIDPipe) id: string): void {
-    this.bookingsService.remove(id);
+  remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    return this.bookingsService.remove(id);
   }
 }
