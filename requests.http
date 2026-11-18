@@ -1,0 +1,384 @@
+# Cinema Booking API - run the requests from top to bottom.
+# Works with the REST Client extension for VS Code.
+# Ids are taken from earlier responses, dates are generated relative to now.
+
+@baseUrl = http://localhost:3000
+@unknownId = 00000000-0000-4000-8000-000000000000
+
+############################ FILMS ############################
+
+### Create a film -> 201
+# @name createFilm
+POST {{baseUrl}}/films
+Content-Type: application/json
+
+{
+  "title": "Dune: Part Two",
+  "durationMinutes": 166,
+  "releaseYear": 2024
+}
+
+### Create a second film that no showing will use -> 201
+# @name createSpareFilm
+@filmId = {{createFilm.response.body.id}}
+POST {{baseUrl}}/films
+Content-Type: application/json
+
+{
+  "title": "Arrival",
+  "durationMinutes": 116,
+  "releaseYear": 2016
+}
+
+### Create a film without a required field -> 400
+@spareFilmId = {{createSpareFilm.response.body.id}}
+POST {{baseUrl}}/films
+Content-Type: application/json
+
+{
+  "title": "No duration",
+  "releaseYear": 2020
+}
+
+### Create a film with a field of a wrong type -> 400
+POST {{baseUrl}}/films
+Content-Type: application/json
+
+{
+  "title": "Wrong type",
+  "durationMinutes": "166",
+  "releaseYear": 2024
+}
+
+### List all films -> 200
+GET {{baseUrl}}/films
+
+### Get one film -> 200
+GET {{baseUrl}}/films/{{filmId}}
+
+### Get a film that does not exist -> 404
+GET {{baseUrl}}/films/{{unknownId}}
+
+### Update a subset of film fields -> 200
+PATCH {{baseUrl}}/films/{{filmId}}
+Content-Type: application/json
+
+{
+  "durationMinutes": 167
+}
+
+### Update a film with a field of a wrong type -> 400
+PATCH {{baseUrl}}/films/{{filmId}}
+Content-Type: application/json
+
+{
+  "title": 42
+}
+
+### Update a film that does not exist -> 404
+PATCH {{baseUrl}}/films/{{unknownId}}
+Content-Type: application/json
+
+{
+  "title": "Nobody"
+}
+
+############################ HALLS ############################
+
+### Create a hall -> 201
+# @name createHall
+POST {{baseUrl}}/halls
+Content-Type: application/json
+
+{
+  "name": "Red hall",
+  "rows": 3,
+  "seatsPerRow": 5
+}
+
+### Create a second hall that no showing will use -> 201
+# @name createSpareHall
+@hallId = {{createHall.response.body.id}}
+POST {{baseUrl}}/halls
+Content-Type: application/json
+
+{
+  "name": "Spare hall",
+  "rows": 2,
+  "seatsPerRow": 2
+}
+
+### Create a hall without a required field -> 400
+@spareHallId = {{createSpareHall.response.body.id}}
+POST {{baseUrl}}/halls
+Content-Type: application/json
+
+{
+  "name": "No seats",
+  "rows": 3
+}
+
+### Create a hall with a field of a wrong type -> 400
+POST {{baseUrl}}/halls
+Content-Type: application/json
+
+{
+  "name": "Wrong type",
+  "rows": "three",
+  "seatsPerRow": 5
+}
+
+### Create a hall with a number that is not a positive integer -> 400
+POST {{baseUrl}}/halls
+Content-Type: application/json
+
+{
+  "name": "Zero rows",
+  "rows": 0,
+  "seatsPerRow": 2.5
+}
+
+### Create a hall with a name that is already taken -> 409
+POST {{baseUrl}}/halls
+Content-Type: application/json
+
+{
+  "name": "Red hall",
+  "rows": 10,
+  "seatsPerRow": 10
+}
+
+### List all halls -> 200
+GET {{baseUrl}}/halls
+
+### Get one hall with its 15 seats -> 200
+GET {{baseUrl}}/halls/{{hallId}}
+
+### Get a hall that does not exist -> 404
+GET {{baseUrl}}/halls/{{unknownId}}
+
+########################## SHOWINGS ###########################
+
+### Create a showing that starts tomorrow -> 201
+# @name createShowing
+POST {{baseUrl}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "{{filmId}}",
+  "hallId": "{{hallId}}",
+  "startsAt": "{{$datetime iso8601 1 d}}",
+  "price": 12500
+}
+
+### Create a showing for a film that does not exist -> 400
+@showingId = {{createShowing.response.body.id}}
+POST {{baseUrl}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "{{unknownId}}",
+  "hallId": "{{hallId}}",
+  "startsAt": "{{$datetime iso8601 1 d}}",
+  "price": 12500
+}
+
+### Create a showing in a hall that does not exist -> 400
+POST {{baseUrl}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "{{filmId}}",
+  "hallId": "{{unknownId}}",
+  "startsAt": "{{$datetime iso8601 1 d}}",
+  "price": 12500
+}
+
+### Create a showing with startsAt that is not ISO 8601 -> 400
+POST {{baseUrl}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "{{filmId}}",
+  "hallId": "{{hallId}}",
+  "startsAt": "tomorrow evening",
+  "price": 12500
+}
+
+### Create a showing with startsAt in the past -> 400
+POST {{baseUrl}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "{{filmId}}",
+  "hallId": "{{hallId}}",
+  "startsAt": "2020-01-01T18:00:00Z",
+  "price": 12500
+}
+
+### Create a showing with a price that is not a positive integer -> 400
+POST {{baseUrl}}/showings
+Content-Type: application/json
+
+{
+  "filmId": "{{filmId}}",
+  "hallId": "{{hallId}}",
+  "startsAt": "{{$datetime iso8601 1 d}}",
+  "price": 99.5
+}
+
+### List all showings, ordered by start time -> 200
+GET {{baseUrl}}/showings
+
+### List the showings of one film -> 200
+GET {{baseUrl}}/showings?filmId={{filmId}}
+
+### List the showings that start tomorrow -> 200
+GET {{baseUrl}}/showings?date={{$datetime 'YYYY-MM-DD' 1 d}}
+
+### Combine both filters -> 200
+GET {{baseUrl}}/showings?filmId={{filmId}}&date={{$datetime 'YYYY-MM-DD' 1 d}}
+
+### List showings with a date in a wrong format -> 400
+GET {{baseUrl}}/showings?date=01-05-2030
+
+### Get one showing with the film title and the hall name -> 200
+GET {{baseUrl}}/showings/{{showingId}}
+
+### Get a showing that does not exist -> 404
+GET {{baseUrl}}/showings/{{unknownId}}
+
+### List the seats of the showing, all free -> 200
+GET {{baseUrl}}/showings/{{showingId}}/seats
+
+### List the seats of a showing that does not exist -> 404
+GET {{baseUrl}}/showings/{{unknownId}}/seats
+
+########################## BOOKINGS ###########################
+
+### List all bookings, still empty -> 200
+GET {{baseUrl}}/bookings
+
+### Book two seats -> 201, totalPrice 25000
+# @name createBooking
+POST {{baseUrl}}/showings/{{showingId}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [
+    { "row": 1, "seat": 1 },
+    { "row": 1, "seat": 2 }
+  ]
+}
+
+### Book seats on a showing that does not exist -> 404
+@bookingId = {{createBooking.response.body.id}}
+POST {{baseUrl}}/showings/{{unknownId}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [{ "row": 1, "seat": 1 }]
+}
+
+### Book with an empty list of seats -> 400
+POST {{baseUrl}}/showings/{{showingId}}/bookings
+Content-Type: application/json
+
+{
+  "seats": []
+}
+
+### Book a seat described by one number only -> 400
+POST {{baseUrl}}/showings/{{showingId}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [{ "row": 2 }]
+}
+
+### Book the same seat twice in one request -> 400
+POST {{baseUrl}}/showings/{{showingId}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [
+    { "row": 2, "seat": 1 },
+    { "row": 2, "seat": 1 }
+  ]
+}
+
+### Book a seat in a row the hall does not have -> 400
+POST {{baseUrl}}/showings/{{showingId}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [{ "row": 4, "seat": 1 }]
+}
+
+### Book a seat number the row does not have -> 400
+POST {{baseUrl}}/showings/{{showingId}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [{ "row": 1, "seat": 6 }]
+}
+
+### Book a seat whose numbers are not positive integers -> 400
+POST {{baseUrl}}/showings/{{showingId}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [{ "row": 0, "seat": 1.5 }]
+}
+
+### Book a free seat together with a taken one -> 409, nothing is booked
+POST {{baseUrl}}/showings/{{showingId}}/bookings
+Content-Type: application/json
+
+{
+  "seats": [
+    { "row": 3, "seat": 5 },
+    { "row": 1, "seat": 2 }
+  ]
+}
+
+### List the seats again: only row 1 seats 1 and 2 are booked -> 200
+GET {{baseUrl}}/showings/{{showingId}}/seats
+
+### List the bookings of the showing -> 200
+GET {{baseUrl}}/showings/{{showingId}}/bookings
+
+### List the bookings of a showing that does not exist -> 404
+GET {{baseUrl}}/showings/{{unknownId}}/bookings
+
+### List all bookings -> 200
+GET {{baseUrl}}/bookings
+
+########################### DELETING ##########################
+
+### Delete a film that a showing uses -> 409
+DELETE {{baseUrl}}/films/{{filmId}}
+
+### Delete a film that nothing uses -> 204
+DELETE {{baseUrl}}/films/{{spareFilmId}}
+
+### Delete a film that does not exist -> 404
+DELETE {{baseUrl}}/films/{{unknownId}}
+
+### Delete a hall that a showing uses -> 409
+DELETE {{baseUrl}}/halls/{{hallId}}
+
+### Delete a hall that nothing uses -> 204
+DELETE {{baseUrl}}/halls/{{spareHallId}}
+
+### Delete a hall that does not exist -> 404
+DELETE {{baseUrl}}/halls/{{unknownId}}
+
+### Cancel the booking -> 204
+DELETE {{baseUrl}}/bookings/{{bookingId}}
+
+### Cancel a booking that does not exist -> 404
+DELETE {{baseUrl}}/bookings/{{unknownId}}
+
+### List the seats one more time: all free again -> 200
+GET {{baseUrl}}/showings/{{showingId}}/seats
