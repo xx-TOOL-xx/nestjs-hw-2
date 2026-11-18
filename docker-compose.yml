@@ -1,0 +1,26 @@
+# PostgreSQL for local development.
+# Docker Compose reads the same .env file as the application, so one set of
+# values configures both. The defaults below match .env.example.
+name: nestjs-hw-2
+
+services:
+  db:
+    image: postgres:18
+    container_name: nestjs-hw-2-db
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    environment:
+      POSTGRES_USER: ${DB_USER:-cinema}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-cinema}
+      POSTGRES_DB: ${DB_NAME:-cinema}
+    volumes:
+      # PostgreSQL 18 keeps the cluster in a versioned subdirectory of this path.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  pgdata:

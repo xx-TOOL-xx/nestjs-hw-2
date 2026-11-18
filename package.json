@@ -1,7 +1,7 @@
 {
-  "name": "nestjs-hw-1",
+  "name": "nestjs-hw-2",
   "version": "0.0.1",
-  "description": "Cinema booking REST API - NestJS homework 1",
+  "description": "Cinema booking REST API on PostgreSQL and TypeORM - NestJS homework 2",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
@@ -21,13 +21,18 @@
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.4.8",
+    "@nestjs/typeorm": "^11.0.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "dotenv": "^17.4.2",
+    "pg": "^8.22.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "typeorm": "^1.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
