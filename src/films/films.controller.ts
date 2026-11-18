@@ -38,14 +38,14 @@ export class FilmsController {
     type: ErrorResponse,
     description: 'A field is missing or has a wrong type',
   })
-  create(@Body() dto: CreateFilmDto): Film {
+  create(@Body() dto: CreateFilmDto): Promise<Film> {
     return this.filmsService.create(dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'List all films' })
   @ApiOkResponse({ type: [Film] })
-  findAll(): Film[] {
+  findAll(): Promise<Film[]> {
     return this.filmsService.findAll();
   }
 
@@ -57,7 +57,7 @@ export class FilmsController {
     description: 'The id is not a UUID',
   })
   @ApiNotFoundResponse({ type: ErrorResponse, description: 'Film not found' })
-  findOne(@Param('id', ParseUUIDPipe) id: string): Film {
+  findOne(@Param('id', ParseUUIDPipe) id: string): Promise<Film> {
     return this.filmsService.findOne(id);
   }
 
@@ -72,7 +72,7 @@ export class FilmsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateFilmDto,
-  ): Film {
+  ): Promise<Film> {
     return this.filmsService.update(id, dto);
   }
 
@@ -89,7 +89,7 @@ export class FilmsController {
     type: ErrorResponse,
     description: 'At least one showing uses the film',
   })
-  remove(@Param('id', ParseUUIDPipe) id: string): void {
-    this.filmsService.remove(id);
+  remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    return this.filmsService.remove(id);
   }
 }

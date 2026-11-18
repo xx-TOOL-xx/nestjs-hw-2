@@ -21,7 +21,8 @@ import {
 } from '@nestjs/swagger';
 import { ErrorResponse } from '../common/dto/error-response.dto';
 import { CreateHallDto } from './dto/create-hall.dto';
-import { Hall, HallWithSeats } from './entities/hall.entity';
+import { HallWithSeats } from './dto/hall-with-seats.dto';
+import { Hall } from './entities/hall.entity';
 import { HallsService } from './halls.service';
 
 @ApiTags('halls')
@@ -41,14 +42,14 @@ export class HallsController {
     type: ErrorResponse,
     description: 'A hall with this name already exists',
   })
-  create(@Body() dto: CreateHallDto): Hall {
+  create(@Body() dto: CreateHallDto): Promise<Hall> {
     return this.hallsService.create(dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'List all halls' })
   @ApiOkResponse({ type: [Hall] })
-  findAll(): Hall[] {
+  findAll(): Promise<Hall[]> {
     return this.hallsService.findAll();
   }
 
@@ -60,7 +61,7 @@ export class HallsController {
     description: 'The id is not a UUID',
   })
   @ApiNotFoundResponse({ type: ErrorResponse, description: 'Hall not found' })
-  findOne(@Param('id', ParseUUIDPipe) id: string): HallWithSeats {
+  findOne(@Param('id', ParseUUIDPipe) id: string): Promise<HallWithSeats> {
     return this.hallsService.findOneWithSeats(id);
   }
 
@@ -77,7 +78,7 @@ export class HallsController {
     type: ErrorResponse,
     description: 'At least one showing uses the hall',
   })
-  remove(@Param('id', ParseUUIDPipe) id: string): void {
-    this.hallsService.remove(id);
+  remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    return this.hallsService.remove(id);
   }
 }

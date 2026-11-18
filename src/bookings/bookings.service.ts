@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { Seat } from '../halls/entities/seat.entity';
+import { Seat } from '../halls/dto/seat.dto';
 import { HallsService } from '../halls/halls.service';
 import { ShowingsService } from '../showings/showings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -28,15 +28,15 @@ export class BookingsService {
     return [...this.bookings];
   }
 
-  findByShowing(showingId: string): Booking[] {
-    this.showingsService.findOne(showingId);
+  async findByShowing(showingId: string): Promise<Booking[]> {
+    await this.showingsService.findOne(showingId);
     return this.bookings.filter((booking) => booking.showingId === showingId);
   }
 
   /** Every check runs before anything is stored, so a booking is all or nothing. */
-  create(showingId: string, dto: CreateBookingDto): Booking {
-    const showing = this.showingsService.findOne(showingId);
-    const hall = this.hallsService.findOne(showing.hallId);
+  async create(showingId: string, dto: CreateBookingDto): Promise<Booking> {
+    const showing = await this.showingsService.findOne(showingId);
+    const hall = await this.hallsService.findOne(showing.hallId);
 
     const missing = dto.seats.filter(
       (seat) => seat.row > hall.rows || seat.seat > hall.seatsPerRow,
@@ -65,9 +65,9 @@ export class BookingsService {
     return booking;
   }
 
-  seatMap(showingId: string): SeatStatus[] {
-    const showing = this.showingsService.findOne(showingId);
-    const hall = this.hallsService.findOne(showing.hallId);
+  async seatMap(showingId: string): Promise<SeatStatus[]> {
+    const showing = await this.showingsService.findOne(showingId);
+    const hall = await this.hallsService.findOne(showing.hallId);
     const taken = this.bookedSeatKeys(showingId);
 
     return this.hallsService

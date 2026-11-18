@@ -38,7 +38,7 @@ export class ShowingBookingsController {
     type: ErrorResponse,
     description: 'Showing not found',
   })
-  seatMap(@Param('id', ParseUUIDPipe) id: string): SeatStatus[] {
+  seatMap(@Param('id', ParseUUIDPipe) id: string): Promise<SeatStatus[]> {
     return this.bookingsService.seatMap(id);
   }
 
@@ -61,7 +61,7 @@ export class ShowingBookingsController {
   create(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateBookingDto,
-  ): Booking {
+  ): Promise<Booking> {
     return this.bookingsService.create(id, dto);
   }
 
@@ -76,7 +76,7 @@ export class ShowingBookingsController {
     type: ErrorResponse,
     description: 'Showing not found',
   })
-  findByShowing(@Param('id', ParseUUIDPipe) id: string): Booking[] {
+  findByShowing(@Param('id', ParseUUIDPipe) id: string): Promise<Booking[]> {
     return this.bookingsService.findByShowing(id);
   }
 }

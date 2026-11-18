@@ -35,7 +35,7 @@ export class ShowingsController {
     description:
       'The film or the hall does not exist, startsAt is not a valid ISO 8601 date or is in the past, or price is not a positive integer',
   })
-  create(@Body() dto: CreateShowingDto): Showing {
+  create(@Body() dto: CreateShowingDto): Promise<Showing> {
     return this.showingsService.create(dto);
   }
 
@@ -46,9 +46,9 @@ export class ShowingsController {
   @ApiOkResponse({ type: [ShowingView] })
   @ApiBadRequestResponse({
     type: ErrorResponse,
-    description: 'date is not in YYYY-MM-DD format',
+    description: 'filmId is not a UUID or date is not in YYYY-MM-DD format',
   })
-  findAll(@Query() query: ShowingsQueryDto): ShowingView[] {
+  findAll(@Query() query: ShowingsQueryDto): Promise<ShowingView[]> {
     return this.showingsService.findAll(query);
   }
 
@@ -63,7 +63,7 @@ export class ShowingsController {
     type: ErrorResponse,
     description: 'Showing not found',
   })
-  findOne(@Param('id', ParseUUIDPipe) id: string): ShowingView {
+  findOne(@Param('id', ParseUUIDPipe) id: string): Promise<ShowingView> {
     return this.showingsService.findOneView(id);
   }
 }

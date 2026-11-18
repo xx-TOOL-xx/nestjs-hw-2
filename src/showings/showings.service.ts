@@ -3,7 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { isPostgresError, PostgresErrorCode } from '../common/postgres-error';
 import { FilmsService } from '../films/films.service';
 import { HallsService } from '../halls/halls.service';
 import { CreateShowingDto } from './dto/create-showing.dto';
@@ -13,71 +15,95 @@ import { Showing } from './entities/showing.entity';
 
 @Injectable()
 export class ShowingsService {
-  private readonly showings: Showing[] = [];
-
   constructor(
+    @InjectRepository(Showing)
+    private readonly showingsRepository: Repository<Showing>,
     private readonly filmsService: FilmsService,
     private readonly hallsService: HallsService,
-  ) {
-    // A film or a hall cannot be deleted while a showing refers to it.
-    this.filmsService.registerUsageCheck((filmId) =>
-      this.showings.some((showing) => showing.filmId === filmId),
-    );
-    this.hallsService.registerUsageCheck((hallId) =>
-      this.showings.some((showing) => showing.hallId === hallId),
-    );
-  }
+  ) {}
 
-  create(dto: CreateShowingDto): Showing {
-    if (!this.filmsService.exists(dto.filmId)) {
+  async create(dto: CreateShowingDto): Promise<Showing> {
+    if (!(await this.filmsService.exists(dto.filmId))) {
       throw new BadRequestException(`Film with id ${dto.filmId} not found`);
     }
-    if (!this.hallsService.exists(dto.hallId)) {
+    if (!(await this.hallsService.exists(dto.hallId))) {
       throw new BadRequestException(`Hall with id ${dto.hallId} not found`);
     }
 
-    const showing: Showing = {
-      id: randomUUID(),
+    const showing = this.showingsRepository.create({
       filmId: dto.filmId,
       hallId: dto.hallId,
-      startsAt: new Date(dto.startsAt).toISOString(),
+      startsAt: new Date(dto.startsAt),
       price: dto.price,
-    };
-    this.showings.push(showing);
-    return showing;
+    });
+    try {
+      return await this.showingsRepository.save(showing);
+    } catch (error) {
+      // The film or the hall was deleted after the checks above.
+      if (isPostgresError(error, PostgresErrorCode.ForeignKeyViolation)) {
+        throw new BadRequestException(
+          'The film or the hall of the showing no longer exists',
+        );
+      }
+      throw error;
+    }
   }
 
-  findAll(query: ShowingsQueryDto = {}): ShowingView[] {
-    return this.showings
-      .filter((showing) => !query.filmId || showing.filmId === query.filmId)
-      .filter(
-        (showing) => !query.date || showing.startsAt.startsWith(query.date),
-      )
-      .sort(
-        (a, b) =>
-          a.startsAt.localeCompare(b.startsAt) || a.id.localeCompare(b.id),
-      )
-      .map((showing) => this.toView(showing));
+  /** Filtering and sorting are done by the database. */
+  async findAll(query: ShowingsQueryDto): Promise<ShowingView[]> {
+    const builder = this.showingsRepository
+      .createQueryBuilder('showing')
+      .innerJoinAndSelect('showing.film', 'film')
+      .innerJoinAndSelect('showing.hall', 'hall');
+
+    if (query.filmId !== undefined) {
+      builder.andWhere('showing.filmId = :filmId', { filmId: query.filmId });
+    }
+    if (query.date !== undefined) {
+      // "Starts on that day" means the UTC day: [00:00, next day 00:00).
+      const dayStart = new Date(`${query.date}T00:00:00.000Z`);
+      const nextDayStart = new Date(dayStart);
+      nextDayStart.setUTCDate(nextDayStart.getUTCDate() + 1);
+      builder
+        .andWhere('showing.startsAt >= :dayStart', { dayStart })
+        .andWhere('showing.startsAt < :nextDayStart', { nextDayStart });
+    }
+
+    const showings = await builder
+      .orderBy('showing.startsAt', 'ASC')
+      // Showings that start at the same moment keep a stable order.
+      .addOrderBy('showing.id', 'ASC')
+      .getMany();
+
+    return showings.map((showing) => this.toView(showing));
   }
 
-  findOne(id: string): Showing {
-    const showing = this.showings.find((item) => item.id === id);
-    if (!showing) {
+  async findOne(id: string): Promise<Showing> {
+    const showing = await this.showingsRepository.findOneBy({ id });
+    if (showing === null) {
       throw new NotFoundException(`Showing with id ${id} not found`);
     }
     return showing;
   }
 
-  findOneView(id: string): ShowingView {
-    return this.toView(this.findOne(id));
+  async findOneView(id: string): Promise<ShowingView> {
+    const showing = await this.showingsRepository.findOne({
+      where: { id },
+      relations: { film: true, hall: true },
+    });
+    if (showing === null) {
+      throw new NotFoundException(`Showing with id ${id} not found`);
+    }
+    return this.toView(showing);
   }
 
+  /** Expects a showing loaded together with its film and its hall. */
   private toView(showing: Showing): ShowingView {
     return {
       id: showing.id,
-      filmTitle: this.filmsService.findOne(showing.filmId).title,
-      hallName: this.hallsService.findOne(showing.hallId).name,
-      startsAt: showing.startsAt,
+      filmTitle: showing.film!.title,
+      hallName: showing.hall!.name,
+      startsAt: showing.startsAt.toISOString(),
       price: showing.price,
     };
   }

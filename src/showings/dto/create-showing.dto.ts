@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsISO8601, IsPositive, IsUUID } from 'class-validator';
+import { IsInt, IsISO8601, IsPositive, IsUUID, Max } from 'class-validator';
+import { MAX_INTEGER } from '../../common/column-limits';
 import { IsFutureDate } from '../validators/is-future-date.validator';
 
 export class CreateShowingDto {
@@ -26,5 +27,6 @@ export class CreateShowingDto {
   })
   @IsInt()
   @IsPositive()
+  @Max(MAX_INTEGER)
   price: number;
 }

@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsISO8601, IsOptional, IsString, Matches } from 'class-validator';
+import { IsISO8601, IsOptional, IsUUID, Matches } from 'class-validator';
 
 export class ShowingsQueryDto {
   @ApiPropertyOptional({
@@ -7,7 +7,7 @@ export class ShowingsQueryDto {
     description: 'Keep only showings of this film',
   })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   filmId?: string;
 
   @ApiPropertyOptional({
